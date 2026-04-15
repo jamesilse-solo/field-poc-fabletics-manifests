@@ -35,7 +35,7 @@ spec:
               namespace: agentgateway-system
               kind: AgentgatewayBackend
               group: agentgateway.dev
-            jwksPath: realms/fabletics-demo/protocol/openid-connect/certs
+            jwksPath: keycloak/realms/fabletics-demo/protocol/openid-connect/certs
     transformation:
       request:
         set:

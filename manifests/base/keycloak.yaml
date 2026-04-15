@@ -65,10 +65,8 @@ spec:
           value: "true"
         - name: KC_HOSTNAME_STRICT
           value: "false"
-        - name: KC_HOSTNAME_URL
-          value: "https://35.223.149.82/keycloak"
-        - name: KC_HOSTNAME_ADMIN_URL
-          value: "https://35.223.149.82/keycloak"
+        - name: KC_HTTP_RELATIVE_PATH
+          value: "/keycloak"
         - name: KC_HEALTH_ENABLED
           value: "true"
         - name: KC_DB_URL_DATABASE
@@ -86,13 +84,13 @@ spec:
           containerPort: 8080
         startupProbe:
           httpGet:
-            path: /realms/master
+            path: /keycloak/realms/master
             port: 8080
           periodSeconds: 5
           failureThreshold: 60
         readinessProbe:
           httpGet:
-            path: /realms/master
+            path: /keycloak/realms/master
             port: 8080
           periodSeconds: 10
           failureThreshold: 3
