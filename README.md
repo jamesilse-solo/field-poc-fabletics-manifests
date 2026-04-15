@@ -1,5 +1,33 @@
 # Fabletics — AgentGateway Enterprise Demo
 
+## Demo Agenda (~45 min)
+
+```mermaid
+gantt
+    dateFormat mm
+    axisFormat %M min
+    section Agenda
+    Intro & context         :done,    00, 2m
+    Identity & Auth         :active,  02, 15m
+    RBAC & Tool Exposure    :         17, 10m
+    Token Vault             :         27, 5m
+    Observability           :         32, 8m
+    Bypass Prevention       :         40, 5m
+```
+
+| # | Topic | Time | What to show |
+|---|---|---|---|
+| 1 | **Intro** | 2 min | One slide — what AgentGateway is and why it matters for Fabletics |
+| 2 | **Identity & Auth** | 15 min | Sarah logs in via Keycloak (same OIDC flow as Entra ID). Decode JWT live to show `org`, `role`, `tier` claims. Explain token vault — upstream OAuth never returned to client. |
+| 3 | **RBAC & Tool Exposure** | 10 min | Same request as sarah (admin) vs alex (viewer) → different MCP tool surfaces. Walk through auth-policy showing how CEL expressions gate access. |
+| 4 | **Token Vault** | 5 min | Show AgentGateway holding upstream credentials. Demonstrate that the client never sees the exchanged token — only the gateway invokes on their behalf. |
+| 5 | **Observability** | 8 min | Make a couple of LLM calls, switch to Gloo UI traces — show `user_id`, JWT claims, prompt, response body captured per request. Grafana for tier-based token usage. |
+| 6 | **Bypass Prevention** | 5 min | MCP server is cluster-internal only — no external route exists. Show the network topology. Mention Ambient mesh east-west enforcement as the next layer. |
+
+> **Skip if tight:** Agent Registry. Keep Intro to one sentence, not a slide deck.
+
+---
+
 ## Architecture
 
 ```mermaid
@@ -91,15 +119,24 @@ sequenceDiagram
     Note right of GW: Visible in Gloo UI traces
 ```
 
+## Live environment
+
+| | |
+|---|---|
+| **Gateway IP** | `35.223.149.82` |
+| **Gloo UI** | https://35.223.149.82/ |
+| **ArgoCD** | https://35.223.149.82/argocd (admin / `mA8a9QipnZlwKxDI`) |
+| **Grafana** | https://35.223.149.82/grafana (admin / prom-operator) |
+| **Keycloak** | https://35.223.149.82/keycloak (admin / admin, realm: fabletics-demo) |
+| **API key** | `agw-demo-2026` |
+
 ## Quick commands
 
 ```bash
 export CTX=gke_field-engineering-us_us-central1_ambient2-jilse
 
 # Get gateway IP
-export GW=$(kubectl --context $CTX get svc -n agentgateway-system \
-  --selector=gateway.networking.k8s.io/gateway-name=agentgateway-proxy \
-  -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}')
+export GW=35.223.149.82
 
 # Get sarah's JWT
 export TOKEN=$(curl -s -X POST "https://$GW/keycloak/realms/fabletics-demo/protocol/openid-connect/token" \
