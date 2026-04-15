@@ -84,13 +84,18 @@ spec:
         ports:
         - name: http
           containerPort: 8080
+        startupProbe:
+          httpGet:
+            path: /realms/master
+            port: 8080
+          periodSeconds: 5
+          failureThreshold: 60
         readinessProbe:
           httpGet:
-            path: /keycloak/
+            path: /realms/master
             port: 8080
-          initialDelaySeconds: 90
           periodSeconds: 10
-          failureThreshold: 12
+          failureThreshold: 3
         resources:
           requests:
             memory: "512Mi"

@@ -27,7 +27,7 @@ spec:
     jwtAuthentication:
       mode: Permissive
       providers:
-      - issuer: http://keycloak.keycloak.svc.cluster.local:8080/keycloak/realms/fabletics-demo
+      - issuer: http://keycloak.keycloak.svc.cluster.local:8080/realms/fabletics-demo
         jwks:
           remote:
             backendRef:
@@ -35,7 +35,7 @@ spec:
               namespace: agentgateway-system
               kind: AgentgatewayBackend
               group: agentgateway.dev
-            jwksPath: keycloak/realms/fabletics-demo/protocol/openid-connect/certs
+            jwksPath: realms/fabletics-demo/protocol/openid-connect/certs
     transformation:
       request:
         set:
