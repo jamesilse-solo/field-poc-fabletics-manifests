@@ -84,18 +84,13 @@ spec:
         ports:
         - name: http
           containerPort: 8080
-        startupProbe:
-          httpGet:
-            path: /keycloak/health/started
-            port: 8080
-          periodSeconds: 5
-          failureThreshold: 60
         readinessProbe:
           httpGet:
-            path: /keycloak/health/ready
+            path: /keycloak/
             port: 8080
+          initialDelaySeconds: 90
           periodSeconds: 10
-          failureThreshold: 3
+          failureThreshold: 12
         resources:
           requests:
             memory: "512Mi"
