@@ -1,0 +1,47 @@
+# Self-signed CA for TLS termination at the gateway
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned-issuer
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: agw-ca
+  namespace: agentgateway-system
+spec:
+  isCA: true
+  commonName: agentgateway-ca
+  secretName: agw-ca-secret
+  issuerRef:
+    name: selfsigned-issuer
+    kind: ClusterIssuer
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: agw-ca-issuer
+  namespace: agentgateway-system
+spec:
+  ca:
+    secretName: agw-ca-secret
+---
+# TLS certificate for the gateway proxy
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: agw-proxy-tls
+  namespace: agentgateway-system
+spec:
+  secretName: agw-proxy-tls
+  duration: 8760h # 1 year
+  renewBefore: 720h # 30 days
+  commonName: "agentgateway-proxy"
+  dnsNames:
+  - "agentgateway-proxy"
+  - "agentgateway-proxy.agentgateway-system.svc.cluster.local"
+  issuerRef:
+    name: agw-ca-issuer
+    kind: Issuer

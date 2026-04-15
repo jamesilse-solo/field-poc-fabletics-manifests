@@ -1,0 +1,72 @@
+---
+apiVersion: enterpriseagentgateway.solo.io/v1alpha1
+kind: EnterpriseAgentgatewayParameters
+metadata:
+  name: agentgateway-config
+  namespace: agentgateway-system
+spec:
+  sharedExtensions:
+    extauth:
+      enabled: true
+      deployment:
+        spec:
+          replicas: 1
+    ratelimiter:
+      enabled: true
+      deployment:
+        spec:
+          replicas: 1
+    extCache:
+      enabled: true
+      deployment:
+        spec:
+          replicas: 1
+  logging:
+    level: info
+  service:
+    spec:
+      type: LoadBalancer
+      ports:
+      - name: http
+        port: 8080
+        targetPort: 8080
+        protocol: TCP
+      - name: https
+        port: 443
+        targetPort: 8443
+        protocol: TCP
+  rawConfig:
+    config:
+      metrics:
+        fields:
+          add:
+            user_id: 'request.headers["x-user-id"]'
+      logging:
+        fields:
+          add:
+            jwt.all: 'jwt'
+            llm.streaming: 'llm.streaming'
+            llm.cached_tokens: 'llm.cachedInputTokens'
+            llm.reasoning_tokens: 'llm.reasoningTokens'
+            llm.prompt: 'llm.prompt'
+            llm.completion: 'llm.completion[0]'
+        format: json
+      tracing:
+        otlpProtocol: grpc
+        otlpEndpoint: http://solo-enterprise-telemetry-collector.agentgateway-system.svc.cluster.local:4317
+        randomSampling: 'true'
+        fields:
+          add:
+            jwt: 'jwt'
+            response.body: 'json(response.body)'
+  deployment:
+    spec:
+      replicas: 2
+      template:
+        spec:
+          containers:
+          - name: agentgateway
+            resources:
+              requests:
+                cpu: 300m
+                memory: 128Mi

@@ -1,0 +1,41 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: agw-management
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: us-docker.pkg.dev/solo-public/solo-enterprise-helm/charts
+    chart: management
+    targetRevision: "0.3.12"
+    helm:
+      valuesObject:
+        global:
+          imagePullPolicy: IfNotPresent
+          imagePullSecrets: []
+        service:
+          type: ClusterIP
+        products:
+          kagent:
+            enabled: false
+          agentgateway:
+            enabled: true
+            namespace: agentgateway-system
+          mesh:
+            enabled: false
+          agentregistry:
+            enabled: false
+        clickhouse:
+          enabled: true
+        tracing:
+          verbose: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: agentgateway-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

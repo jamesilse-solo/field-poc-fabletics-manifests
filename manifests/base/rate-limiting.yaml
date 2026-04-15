@@ -1,0 +1,61 @@
+apiVersion: ratelimit.solo.io/v1alpha1
+kind: RateLimitConfig
+metadata:
+  name: tiered-budgets
+  namespace: agentgateway-system
+spec:
+  raw:
+    descriptors:
+    - key: X-User-Tier
+      value: "free"
+      descriptors:
+      - key: X-User-ID
+        rateLimit:
+          unit: HOUR
+          requestsPerUnit: 50
+    - key: X-User-Tier
+      value: "standard"
+      descriptors:
+      - key: X-User-ID
+        rateLimit:
+          unit: HOUR
+          requestsPerUnit: 200
+    - key: X-User-Tier
+      value: "premium"
+      descriptors:
+      - key: X-User-ID
+        rateLimit:
+          unit: HOUR
+          requestsPerUnit: 1000
+    - key: X-User-Tier
+      value: "admin"
+      descriptors:
+      - key: X-User-ID
+        rateLimit:
+          unit: HOUR
+          requestsPerUnit: 5000
+    rateLimits:
+    - actions:
+      - requestHeaders:
+          descriptorKey: "X-User-Tier"
+          headerName: "X-User-Tier"
+      - requestHeaders:
+          descriptorKey: "X-User-ID"
+          headerName: "X-User-ID"
+      type: TOKEN
+---
+apiVersion: enterpriseagentgateway.solo.io/v1alpha1
+kind: EnterpriseAgentgatewayPolicy
+metadata:
+  name: tiered-rate-limit
+  namespace: agentgateway-system
+spec:
+  targetRefs:
+  - name: agentgateway-proxy
+    group: gateway.networking.k8s.io
+    kind: Gateway
+  traffic:
+    entRateLimit:
+      global:
+        rateLimitConfigRefs:
+        - name: tiered-budgets

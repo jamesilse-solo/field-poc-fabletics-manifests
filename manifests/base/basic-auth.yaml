@@ -1,0 +1,94 @@
+# API key secret for UI route access
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ui-admin-key
+  namespace: agentgateway-system
+  labels:
+    api-key-group: ui-access
+type: extauth.solo.io/apikey
+stringData:
+  api-key: agw-demo-2026
+  x-user-id: admin
+---
+# AuthConfig for UI routes (API key via x-api-key header)
+apiVersion: extauth.solo.io/v1
+kind: AuthConfig
+metadata:
+  name: ui-auth
+  namespace: agentgateway-system
+spec:
+  configs:
+  - apiKeyAuth:
+      headerName: x-api-key
+      k8sSecretApikeyStorage:
+        labelSelector:
+          api-key-group: ui-access
+---
+# Apply to ArgoCD route
+apiVersion: enterpriseagentgateway.solo.io/v1alpha1
+kind: EnterpriseAgentgatewayPolicy
+metadata:
+  name: argocd-basic-auth
+  namespace: agentgateway-system
+spec:
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: argocd
+  traffic:
+    entExtAuth:
+      authConfigRef:
+        name: ui-auth
+        namespace: agentgateway-system
+---
+# Apply to Keycloak route
+apiVersion: enterpriseagentgateway.solo.io/v1alpha1
+kind: EnterpriseAgentgatewayPolicy
+metadata:
+  name: keycloak-basic-auth
+  namespace: agentgateway-system
+spec:
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: keycloak
+  traffic:
+    entExtAuth:
+      authConfigRef:
+        name: ui-auth
+        namespace: agentgateway-system
+---
+# Apply to Grafana route
+apiVersion: enterpriseagentgateway.solo.io/v1alpha1
+kind: EnterpriseAgentgatewayPolicy
+metadata:
+  name: grafana-basic-auth
+  namespace: agentgateway-system
+spec:
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: grafana
+  traffic:
+    entExtAuth:
+      authConfigRef:
+        name: ui-auth
+        namespace: agentgateway-system
+---
+# Apply to Gloo UI route
+apiVersion: enterpriseagentgateway.solo.io/v1alpha1
+kind: EnterpriseAgentgatewayPolicy
+metadata:
+  name: gloo-ui-basic-auth
+  namespace: agentgateway-system
+spec:
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: gloo-ui
+  traffic:
+    entExtAuth:
+      authConfigRef:
+        name: ui-auth
+        namespace: agentgateway-system

@@ -1,0 +1,35 @@
+apiVersion: ratelimit.solo.io/v1alpha1
+kind: RateLimitConfig
+metadata:
+  name: mcp-tool-rate-limit
+  namespace: agentgateway-system
+spec:
+  raw:
+    domain: "mcp-tools"
+    descriptors:
+    - key: tool_name
+      value: "fetch"
+      rateLimit:
+        requestsPerUnit: 5
+        unit: MINUTE
+    rateLimits:
+    - actions:
+      - cel:
+          expression: 'json(request.body).with(body, body.method == "tools/call" ? string(body.params.name) : "none")'
+          key: "tool_name"
+---
+apiVersion: enterpriseagentgateway.solo.io/v1alpha1
+kind: EnterpriseAgentgatewayPolicy
+metadata:
+  name: mcp-tool-rate-limit
+  namespace: agentgateway-system
+spec:
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: mcp
+  traffic:
+    entRateLimit:
+      global:
+        rateLimitConfigRefs:
+        - name: mcp-tool-rate-limit

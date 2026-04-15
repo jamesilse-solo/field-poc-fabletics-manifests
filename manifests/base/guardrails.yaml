@@ -1,0 +1,84 @@
+apiVersion: enterpriseagentgateway.solo.io/v1alpha1
+kind: EnterpriseAgentgatewayPolicy
+metadata:
+  name: mock-guardrails
+  namespace: agentgateway-system
+spec:
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: mock
+  backend:
+    ai:
+      promptGuard:
+        request:
+        # Prompt injection — system override attempts
+        - regex:
+            action: Reject
+            matches:
+            - "(?i)(ignore|disregard|forget|override|bypass)\\s+(all\\s+|any\\s+|your\\s+)?(previous|prior|earlier|existing|current)\\s+(instructions|rules|guidelines|directives|constraints)"
+            - "(?i)(from now on|effective immediately|starting now)\\s*(,\\s+)?(you\\s+)?(will|shall|must|should)\\s+(be|act|respond|behave)"
+          response:
+            message: "Request blocked: prompt injection detected."
+            statusCode: 403
+        # Jailbreak — DAN & role hijacking
+        - regex:
+            action: Reject
+            matches:
+            - "(?i)(you are now|from now on you are)\\s+(a |an )?(unrestricted|unfiltered|DAN|jailbroken|evil)"
+            - "(?i)(do anything now|DAN mode|enable DAN|activate DAN)"
+            - "(?i)(enter|enable|activate|switch to)\\s+(developer|dev|debug|admin|sudo|root|god|jailbreak)\\s*(mode|access)"
+          response:
+            message: "Request blocked: jailbreak attempt detected."
+            statusCode: 403
+        # System prompt extraction
+        - regex:
+            action: Reject
+            matches:
+            - "(?i)(show|reveal|output|tell|share|repeat|dump|expose)\\s+(me\\s+)?(your|the)?\\s*(system|initial|hidden|secret|internal)\\s*(prompt|instructions?|message|configuration)"
+            - "(?i)(what|tell me)\\s+(are|is)\\s+(your|the)\\s+(system|hidden|secret)\\s+(prompt|instructions?)"
+          response:
+            message: "Request blocked: system prompt extraction attempt."
+            statusCode: 403
+        # PII detection
+        - regex:
+            action: Reject
+            builtins:
+            - CreditCard
+            - Ssn
+            - Email
+            - PhoneNumber
+          response:
+            message: "Request blocked: PII detected. Do not include personal information in prompts."
+            statusCode: 422
+        # Credentials & secrets
+        - regex:
+            action: Reject
+            matches:
+            - "\\bAKIA[0-9A-Z]{16}\\b"
+            - "\\bsk-[a-zA-Z0-9_-]{20,}\\b"
+            - "-----BEGIN\\s+(RSA\\s+|EC\\s+)?PRIVATE KEY-----"
+            - "(?i)(password|secret|token|api[_-]?key)\\s*[=:]\\s*[\"']?[^\\s\"']{8,}"
+          response:
+            message: "Request blocked: credentials or secrets detected."
+            statusCode: 422
+        response:
+        # PII masking in responses
+        - regex:
+            action: Mask
+            builtins:
+            - CreditCard
+            - Ssn
+            - Email
+            - PhoneNumber
+          response:
+            message: "Response filtered: PII redacted."
+        # Secret masking in responses
+        - regex:
+            action: Mask
+            matches:
+            - "\\bAKIA[0-9A-Z]{16}\\b"
+            - "\\bsk-[a-zA-Z0-9_-]{20,}\\b"
+            - "(?i)(password|secret|token|api[_-]?key)\\s*[=:]\\s*[\"']?[^\\s\"']{8,}"
+          response:
+            message: "Response filtered: secrets redacted."

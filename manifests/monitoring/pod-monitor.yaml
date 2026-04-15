@@ -1,0 +1,16 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: agentgateway-proxy
+  namespace: monitoring
+spec:
+  namespaceSelector:
+    matchNames:
+      - agentgateway-system
+  selector:
+    matchLabels:
+      gateway.networking.k8s.io/gateway-name: agentgateway-proxy
+  podMetricsEndpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s

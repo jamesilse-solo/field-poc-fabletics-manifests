@@ -1,0 +1,68 @@
+# Keycloak JWKS backend for JWT validation
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayBackend
+metadata:
+  name: keycloak-jwks
+  namespace: agentgateway-system
+spec:
+  static:
+    host: keycloak.keycloak.svc.cluster.local
+    port: 8080
+---
+# JWT authentication (gateway-wide, Permissive mode)
+# Validates JWT if present, extracts claims to headers.
+# Routes without JWT fall through to their own auth (API key on UI routes).
+apiVersion: enterpriseagentgateway.solo.io/v1alpha1
+kind: EnterpriseAgentgatewayPolicy
+metadata:
+  name: gateway-jwt-auth
+  namespace: agentgateway-system
+spec:
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: agentgateway-proxy
+  traffic:
+    phase: PreRouting
+    jwtAuthentication:
+      mode: Permissive
+      providers:
+      - issuer: http://keycloak.keycloak.svc.cluster.local:8080/realms/fabletics-demo
+        jwks:
+          remote:
+            backendRef:
+              name: keycloak-jwks
+              namespace: agentgateway-system
+              kind: AgentgatewayBackend
+              group: agentgateway.dev
+            jwksPath: realms/fabletics-demo/protocol/openid-connect/certs
+    transformation:
+      request:
+        set:
+        - name: x-user-id
+          value: jwt['preferred_username']
+        - name: x-user-tier
+          value: jwt['tier']
+        - name: x-org
+          value: jwt['org']
+---
+# RBAC + JWT enforcement on LLM/MCP routes
+# These routes REQUIRE a valid JWT with org=fabletics claim
+apiVersion: enterpriseagentgateway.solo.io/v1alpha1
+kind: EnterpriseAgentgatewayPolicy
+metadata:
+  name: llm-rbac
+  namespace: agentgateway-system
+spec:
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: mock
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: mcp
+  traffic:
+    authorization:
+      policy:
+        matchExpressions:
+        - 'jwt.org == "fabletics"'

@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: agw-controller
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: us-docker.pkg.dev/solo-public/enterprise-agentgateway/charts
+    chart: enterprise-agentgateway
+    targetRevision: v2.3.0-rc.1
+    helm:
+      valuesObject:
+        gatewayClassParametersRefs:
+          enterprise-agentgateway:
+            group: enterpriseagentgateway.solo.io
+            kind: EnterpriseAgentgatewayParameters
+            name: agentgateway-config
+            namespace: agentgateway-system
+      # License key is set via:
+      # kubectl -n argocd patch application agw-controller --type merge \
+      #   -p '{"spec":{"source":{"helm":{"parameters":[{"name":"licensing.licenseKey","value":"KEY","forceString":true}]}}}}'
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: agentgateway-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

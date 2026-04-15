@@ -1,0 +1,76 @@
+# --- Cross-namespace ReferenceGrants ---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: allow-agw-to-keycloak
+  namespace: keycloak
+spec:
+  from:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    namespace: agentgateway-system
+  to:
+  - group: ""
+    kind: Service
+---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: allow-agw-to-monitoring
+  namespace: monitoring
+spec:
+  from:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    namespace: agentgateway-system
+  to:
+  - group: ""
+    kind: Service
+---
+# --- Keycloak Route ---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: keycloak
+  namespace: agentgateway-system
+spec:
+  parentRefs:
+  - name: agentgateway-proxy
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /keycloak
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /
+    backendRefs:
+    - name: keycloak
+      namespace: keycloak
+      port: 8080
+    timeouts:
+      request: "30s"
+---
+# --- Grafana Route (no rewrite — Grafana serves from /grafana/ sub-path) ---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: grafana
+  namespace: agentgateway-system
+spec:
+  parentRefs:
+  - name: agentgateway-proxy
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /grafana
+    backendRefs:
+    - name: prometheus-grafana
+      namespace: monitoring
+      port: 3000
+    timeouts:
+      request: "30s"
