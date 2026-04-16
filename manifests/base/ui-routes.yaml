@@ -41,6 +41,12 @@ spec:
     - path:
         type: PathPrefix
         value: /keycloak
+    filters:
+    - type: RequestHeaderModifier
+      requestHeaderModifier:
+        set:
+        - name: X-Forwarded-Proto
+          value: https
     backendRefs:
     - name: keycloak
       namespace: keycloak
